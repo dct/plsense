@@ -7,6 +7,7 @@ use PPI::Lexer;
 use List::AllUtils qw{ first };
 use PlSense::Logger;
 use PlSense::Util;
+use PlSense::Configure;
 {
     my %lexer_of :ATTR();
 
@@ -80,7 +81,16 @@ use PlSense::Util;
         if ( $sym->isa("PlSense::Symbol::Module") ) {
             $ret = $sym->get_name." is Module.\n";
             $ret .= "defined in '".$sym->get_filepath."'.\n\n";
-            $ret .= $sym->get_helptext ? $sym->get_helptext."\n" : "Not documented.\n";
+
+            if ($sym->get_helptext) {
+                $ret .= $sym->get_helptext."\n";
+            } else {
+                my $mdlnm = $sym->get_name();
+                my $filepath = $sym->get_filepath;
+                my $perldoc = get_config("perldoc");
+                my $mdlhelptext = qx{ $perldoc -t $mdlnm 2>/dev/null } || qx{ $perldoc -t '$filepath' 2>/dev/null };
+                $ret .= $mdlhelptext ? $mdlhelptext : "Not documented.\n";
+            }
         }
 
         elsif ( $sym->isa("PlSense::Symbol::Method") ) {
